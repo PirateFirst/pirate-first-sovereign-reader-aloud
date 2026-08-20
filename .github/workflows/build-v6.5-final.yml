@@ -1,0 +1,77 @@
+name: BUILD V6.5 FINAL APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-v6-5:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract ONLY the V6.5 source
+        run: |
+          rm -rf build-source
+          mkdir build-source
+          unzip -q "PirateFirst_SovereignReader_V6_5_Roman_Voices_GoldFleur.zip" -d build-source
+
+          PROJECT="build-source/PirateFirstSovereignReader"
+          test -f "$PROJECT/app/build.gradle.kts"
+
+          echo "Checking source version..."
+          grep -q 'versionCode = 65' "$PROJECT/app/build.gradle.kts"
+          grep -q 'versionName = "6.5"' "$PROJECT/app/build.gradle.kts"
+          grep -q 'Pirate First Sovereign RSVP Reader Aloud V6.5'             "$PROJECT/app/src/main/res/values/strings.xml"
+
+          echo "SOURCE VERIFIED: V6.5"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build V6.5
+        working-directory: build-source/PirateFirstSovereignReader
+        run: |
+          gradle :app:assembleDebug --no-daemon
+
+      - name: Verify the ACTUAL APK
+        run: |
+          APK="build-source/PirateFirstSovereignReader/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt | sort -V | tail -1)
+          test -n "$AAPT"
+
+          echo "APK BADGING:"
+          "$AAPT" dump badging "$APK" | head -20
+
+          "$AAPT" dump badging "$APK" | grep -F 'versionName=\'6.5\''
+          "$AAPT" dump badging "$APK" | grep -F 'versionCode=\'65\''
+
+          echo "ACTUAL APK VERIFIED: V6.5"
+
+      - name: Create unmistakable V6.5 APK ZIP
+        run: |
+          mkdir -p release
+          cp build-source/PirateFirstSovereignReader/app/build/outputs/apk/debug/app-debug.apk             release/PirateFirst_SovereignReader_V6_5.apk
+
+          cd release
+          zip -9 PirateFirst_SovereignReader_V6_5_APK_FINAL.zip             PirateFirst_SovereignReader_V6_5.apk
+
+          ls -lh PirateFirst_SovereignReader_V6_5_APK_FINAL.zip
+
+      - name: Upload ONLY the verified V6.5 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PirateFirst_SovereignReader_V6_5_APK_FINAL
+          path: release/PirateFirst_SovereignReader_V6_5_APK_FINAL.zip
+          if-no-files-found: error
