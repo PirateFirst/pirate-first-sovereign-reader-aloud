@@ -20,16 +20,13 @@ jobs:
       - name: Extract ONLY the V6.5 source
         run: |
           rm -rf build-source
-          mkdir build-source
+          mkdir -p build-source
           unzip -q "PirateFirst_SovereignReader_V6_5_Roman_Voices_GoldFleur.zip" -d build-source
-
           PROJECT="build-source/PirateFirstSovereignReader"
           test -f "$PROJECT/app/build.gradle.kts"
-
-          grep -q 'versionCode = 65' "$PROJECT/app/build.gradle.kts"
-          grep -q 'versionName = "6.5"' "$PROJECT/app/build.gradle.kts"
-          grep -q 'Pirate First Sovereign RSVP Reader Aloud V6.5'             "$PROJECT/app/src/main/res/values/strings.xml"
-
+          grep -Fq 'versionCode = 65' "$PROJECT/app/build.gradle.kts"
+          grep -Fq 'versionName = "6.5"' "$PROJECT/app/build.gradle.kts"
+          grep -Fq 'Pirate First Sovereign RSVP Reader Aloud V6.5' "$PROJECT/app/src/main/res/values/strings.xml"
           echo "SOURCE VERIFIED: V6.5"
 
       - name: Set up Gradle 8.13
@@ -37,7 +34,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build V6.5
+      - name: Build V6.5 APK
         working-directory: build-source/PirateFirstSovereignReader
         run: gradle :app:assembleDebug --no-daemon
 
@@ -45,19 +42,22 @@ jobs:
         run: |
           APK="build-source/PirateFirstSovereignReader/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
-          echo "APK successfully built:"
-          ls -lh "$APK"
-          echo "V6.5 APK verification passed because the source and build completed successfully."
+          echo "APK BADGING:"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > apk-badging.txt
+          cat apk-badging.txt
+          grep -Fq "versionCode='65'" apk-badging.txt
+          grep -Fq "versionName='6.5'" apk-badging.txt
+          grep -Fq "label='Pirate First Sovereign RSVP Reader Aloud V6.5'" apk-badging.txt
+          echo "ACTUAL APK VERIFIED: V6.5"
 
       - name: Create V6.5 APK ZIP
         run: |
           mkdir -p release
-          cp build-source/PirateFirstSovereignReader/app/build/outputs/apk/debug/app-debug.apk             release/PirateFirst_SovereignReader_V6_5.apk
+          cp "build-source/PirateFirstSovereignReader/app/build/outputs/apk/debug/app-debug.apk" "release/PirateFirst_SovereignReader_V6_5.apk"
           cd release
-          zip -9 PirateFirst_SovereignReader_V6_5_APK_FINAL.zip             PirateFirst_SovereignReader_V6_5.apk
-          ls -lh PirateFirst_SovereignReader_V6_5_APK_FINAL.zip
+          zip -9 "PirateFirst_SovereignReader_V6_5_APK_FINAL.zip" "PirateFirst_SovereignReader_V6_5.apk"
 
-      - name: Upload ONLY the V6.5 APK
+      - name: Upload ONLY the verified V6.5 APK
         uses: actions/upload-artifact@v4
         with:
           name: PirateFirst_SovereignReader_V6_5_APK_FINAL
