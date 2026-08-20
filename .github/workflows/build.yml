@@ -16,7 +16,7 @@ jobs:
 
       - name: Extract Android project
         run: |
-          unzip -q PirateFirst_SovereignReader_Android_Project.zip
+          unzip -q PirateFirst_SovereignReader_Android_Project_JVM17.zip
           ls -la PirateFirstSovereignReader
 
       - name: Set up Java
