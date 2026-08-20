@@ -33,7 +33,6 @@ jobs:
       - name: Build APK
         run: |
           gradle -p PirateFirstSovereignReader :app:assembleDebug
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
