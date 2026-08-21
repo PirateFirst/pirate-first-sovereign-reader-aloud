@@ -16,8 +16,9 @@ jobs:
 
       - name: Extract Android project
         run: |
-         unzip -q PirateFirst_SovereignReader_V6_6_Roman_Voices_GoldFleur.zip
-          ls -la PirateFirstSovereignReader
+         run: |
+            unzip -q PirateFirstSovereignReader_V6_6_Roman_Voices_GoldFleur.zip || test $? -eq 1
+         ls -la PirateFirstSovereignReader
 
       - name: Set up Java
         uses: actions/setup-java@v4
