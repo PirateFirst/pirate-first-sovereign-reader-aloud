@@ -1,40 +1,149 @@
-name: Build Pirate First Reader APK
+name: BUILD V6.6 FINAL APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
-  build:
+  build-v6-6:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Android project
-        run: |
-          unzip -q "PirateFirst_SovereignReader_V6_6_Roman_Voices_GoldFleur (2).zip" || true
-          ls -la PirateFirstSovereignReader
-
-      - name: Set up Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Locate V6.6 source ZIP
+        run: |
+          ZIP="$(ls -t PirateFirst_SovereignReader_V6_6_Roman_Voices_GoldFleur*.zip 2>/dev/null | head -n 1)"
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No V6.6 source ZIP found in repository root."
+            exit 1
+          fi
+
+          echo "Using source archive:"
+          echo "$ZIP"
+
+          echo "SOURCE_ZIP=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Extract V6.6 source safely
+        run: |
+          rm -rf build-source
+          mkdir -p build-source
+
+          python3 - <<'PY'
+          import os
+          import zipfile
+
+          zip_path = os.environ["SOURCE_ZIP"]
+          destination = "build-source"
+
+          print(f"Extracting: {zip_path}")
+
+          with zipfile.ZipFile(zip_path, "r") as z:
+              for member in z.infolist():
+                  # Remove leading / characters so absolute ZIP paths
+                  # cannot escape the extraction directory.
+                  name = member.filename.lstrip("/")
+
+                  if not name:
+                      continue
+
+                  target = os.path.normpath(
+                      os.path.join(destination, name)
+                  )
+
+                  root = os.path.abspath(destination)
+                  target_abs = os.path.abspath(target)
+
+                  if not (
+                      target_abs == root
+                      or target_abs.startswith(root + os.sep)
+                  ):
+                      raise RuntimeError(
+                          f"Unsafe archive path rejected: {member.filename}"
+                      )
+
+                  if member.is_dir():
+                      os.makedirs(target_abs, exist_ok=True)
+                  else:
+                      os.makedirs(os.path.dirname(target_abs), exist_ok=True)
+                      with z.open(member) as src, open(target_abs, "wb") as dst:
+                          dst.write(src.read())
+
+          print("Extraction completed successfully.")
+          PY
+
+          echo "Extracted project tree:"
+          find build-source -maxdepth 4 -type f | sort | head -200
+
+      - name: Locate Android project
+        run: |
+          PROJECT="$(find build-source -type f -name settings.gradle.kts -print -quit | xargs -r dirname)"
+
+          if [ -z "$PROJECT" ]; then
+            echo "ERROR: Android project not found."
+            exit 1
+          fi
+
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+          echo "Android project:"
+          echo "$PROJECT"
+
+      - name: Verify V6.6 source before building
+        run: |
+          test -f "$PROJECT/app/build.gradle.kts"
+          test -f "$PROJECT/app/src/main/assets/index.html"
+
+          grep -q 'versionCode = 66' "$PROJECT/app/build.gradle.kts"
+          grep -q 'versionName = "6.6"' "$PROJECT/app/build.gradle.kts"
+
+          echo "V6.6 SOURCE VERIFIED"
+          echo "versionCode = 66"
+          echo "versionName = 6.6"
+          echo "index.html present"
+
+      - name: Set up Gradle 8.13
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build APK
+      - name: Build V6.6 APK
+        working-directory: ${{ env.PROJECT }}
         run: |
-          gradle -p PirateFirstSovereignReader :app:assembleDebug
-      - name: Upload APK
+          gradle :app:assembleDebug --no-daemon
+
+      - name: Verify actual APK
+        run: |
+          APK="$PROJECT/app/build/outputs/apk/debug/app-debug.apk"
+
+          test -f "$APK"
+
+          echo "APK successfully built:"
+          ls -lh "$APK"
+
+      - name: Create final V6.6 APK ZIP
+        run: |
+          mkdir -p release
+
+          cp "$PROJECT/app/build/outputs/apk/debug/app-debug.apk" \
+            release/PirateFirst_SovereignReader_V6_6.apk
+
+          cd release
+
+          zip -9 PirateFirst_SovereignReader_V6_6_APK_FINAL.zip \
+            PirateFirst_SovereignReader_V6_6.apk
+
+          ls -lh PirateFirst_SovereignReader_V6_6_APK_FINAL.zip
+
+      - name: Upload V6.6 APK
         uses: actions/upload-artifact@v4
         with:
-          name: Pirate-First-Sovereign-Reader
-          path: PirateFirstSovereignReader/app/build/outputs/apk/debug/*.apk
+          name: PirateFirst_SovereignReader_V6_6_APK_FINAL
+          path: release/PirateFirst_SovereignReader_V6_6_APK_FINAL.zip
+          if-no-files-found: error
