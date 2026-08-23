@@ -1,4 +1,4 @@
-name: BUILD V6.6 FINAL APK
+name: BUILD V6.7 FINAL APK
 
 on:
   workflow_dispatch:
@@ -17,12 +17,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Locate V6.6 source ZIP
+      - name: Locate V6.7 source ZIP
         run: |
-          ZIP="$(ls -t PirateFirst_SovereignReader_V6_6_Roman_Voices_GoldFleur*.zip 2>/dev/null | head -n 1)"
+          ZIP="$(ls -t PirateFirst_SovereignReader_V6_7*.zip 2>/dev/null | head -n 1)"
 
           if [ -z "$ZIP" ]; then
-            echo "ERROR: No V6.6 source ZIP found in repository root."
+            echo "ERROR: No V6.7 source ZIP found in repository root."
             exit 1
           fi
 
@@ -31,7 +31,7 @@ jobs:
 
           echo "SOURCE_ZIP=$ZIP" >> "$GITHUB_ENV"
 
-      - name: Extract V6.6 source safely
+      - name: Extract V6.7 source safely
         run: |
           rm -rf build-source
           mkdir -p build-source
@@ -95,13 +95,13 @@ jobs:
           echo "Android project:"
           echo "$PROJECT"
 
-      - name: Verify V6.6 source before building
+      - name: Verify V6.7 source before building
         run: |
           test -f "$PROJECT/app/build.gradle.kts"
           test -f "$PROJECT/app/src/main/assets/index.html"
-          echo "V6.6 SOURCE VERIFIED"
-          echo "versionCode = 66"
-          echo "versionName = 6.6"
+          echo "V6.7 SOURCE VERIFIED"
+          echo "versionCode = 67"
+          echo "versionName = 6.7"
           echo "index.html present"
 
       - name: Set up Gradle 8.13
@@ -109,7 +109,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build V6.6 APK
+      - name: Build V6.7 APK
         working-directory: ${{ env.PROJECT }}
         run: |
           gradle :app:assembleDebug --no-daemon
@@ -123,23 +123,23 @@ jobs:
           echo "APK successfully built:"
           ls -lh "$APK"
 
-      - name: Create final V6.6 APK ZIP
+      - name: Create final V6.7 APK ZIP
         run: |
           mkdir -p release
 
           cp "$PROJECT/app/build/outputs/apk/debug/app-debug.apk" \
-            release/PirateFirst_SovereignReader_V6_6.apk
+            release/PirateFirst_SovereignReader_V6_7.apk
 
           cd release
 
-          zip -9 PirateFirst_SovereignReader_V6_6_APK_FINAL.zip \
-            PirateFirst_SovereignReader_V6_6.apk
+          zip -9 PirateFirst_SovereignReader_V6_7_APK_FINAL.zip \
+            PirateFirst_SovereignReader_V6_7.apk
 
-          ls -lh PirateFirst_SovereignReader_V6_6_APK_FINAL.zip
+          ls -lh PirateFirst_SovereignReader_V6_7_APK_FINAL.zip
 
-      - name: Upload V6.6 APK
+      - name: Upload V6.7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: PirateFirst_SovereignReader_V6_6_APK_FINAL
-          path: release/PirateFirst_SovereignReader_V6_6_APK_FINAL.zip
+          name: PirateFirst_SovereignReader_V6_7_APK_FINAL
+          path: release/PirateFirst_SovereignReader_V6_7_APK_FINAL.zip
           if-no-files-found: error
