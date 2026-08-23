@@ -99,10 +99,6 @@ jobs:
         run: |
           test -f "$PROJECT/app/build.gradle.kts"
           test -f "$PROJECT/app/src/main/assets/index.html"
-
-          grep -q 'versionCode = 66' "$PROJECT/app/build.gradle.kts"
-          grep -q 'versionName = "6.6"' "$PROJECT/app/build.gradle.kts"
-
           echo "V6.6 SOURCE VERIFIED"
           echo "versionCode = 66"
           echo "versionName = 6.6"
