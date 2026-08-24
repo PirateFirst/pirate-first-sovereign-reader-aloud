@@ -19,15 +19,36 @@ jobs:
 
       - name: Locate V6.7 source ZIP
         run: |
-          ZIP="$(ls -t PirateFirst_SovereignReader_V6_7*.zip 2>/dev/null | head -n 1)"
+          # Canonical source — exact filename, no glob, no filesystem-order selection.
+          ZIP="PirateFirst_SovereignReader_V6_7_LighterTeal_VoiceMemory_Surgical.zip"
+          EXPECTED_SHA256="7782992fedd90c57f91f4743f648d3a48c8f3ecfda2b29ed633028d83c6d5cbf"
 
-          if [ -z "$ZIP" ]; then
-            echo "ERROR: No V6.7 source ZIP found in repository root."
+          # Fail immediately if the canonical ZIP is absent.
+          if [ ! -f "$ZIP" ]; then
+            echo "ERROR: Canonical source ZIP not found: $ZIP"
+            echo "Do not substitute another ZIP. Add the correct file and re-run."
             exit 1
           fi
 
-          echo "Using source archive:"
-          echo "$ZIP"
+          # Fail if multiple V6.7 ZIPs exist — prevents silent wrong-file selection.
+          V67_COUNT=$(ls PirateFirst_SovereignReader_V6_7*.zip 2>/dev/null | wc -l)
+          if [ "$V67_COUNT" -gt 1 ]; then
+            echo "ERROR: Multiple V6.7 ZIPs found in repository root:"
+            ls PirateFirst_SovereignReader_V6_7*.zip
+            echo "Remove all except $ZIP and re-run."
+            exit 1
+          fi
+
+          # Verify SHA-256 of the canonical ZIP before doing anything else.
+          ACTUAL_SHA256=$(sha256sum "$ZIP" | awk '{print $1}')
+          echo "Source ZIP:      $ZIP"
+          echo "Expected SHA256: $EXPECTED_SHA256"
+          echo "Actual   SHA256: $ACTUAL_SHA256"
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "ERROR: SHA-256 mismatch — ZIP file is not the verified Surgical source."
+            exit 1
+          fi
+          echo "SHA-256 verified."
 
           echo "SOURCE_ZIP=$ZIP" >> "$GITHUB_ENV"
 
